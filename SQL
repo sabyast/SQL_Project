@@ -1,0 +1,70 @@
+-- Create a temporary table to store raw sales data
+CREATE TEMPORARY TABLE raw_sales_data (
+  order_id INT,
+  product_id INT,
+  quantity INT,
+  price DECIMAL(10, 2)
+);
+
+-- Insert some sample data into the raw_sales_data table
+INSERT INTO raw_sales_data (order_id, product_id, quantity, price)
+VALUES
+  (1, 101, 2, 25.99),
+  (2, 102, 3, 12.50),
+  (3, 101, 1, 25.99),
+  (4, 103, 5, 8.75),
+  (5, 101, 2, 25.99),
+  (6, 104, 1, 45.00),
+  (7, 105, 4, 30.25),
+  (8, 102, 2, 12.50),
+  (9, 106, 3, 15.80),
+  (10, 101, 1, 25.99);
+
+-- CTE 1: Calculate total sales for each product
+WITH total_sales_per_product AS (
+  SELECT
+    product_id,
+    SUM(quantity * price) AS total_sales
+  FROM raw_sales_data
+  GROUP BY product_id
+),
+
+-- CTE 2: Find the top 3 best-selling products
+top_3_products AS (
+  SELECT
+    product_id,
+    total_sales
+  FROM total_sales_per_product
+  ORDER BY total_sales DESC
+  LIMIT 3
+),
+
+-- CTE 3: Calculate average sales per order
+average_sales_per_order AS (
+  SELECT
+    order_id,
+    SUM(quantity * price) AS order_total
+  FROM raw_sales_data
+  GROUP BY order_id
+),
+
+-- CTE 4: Find the orders with the highest sales
+top_orders AS (
+  SELECT
+    order_id,
+    order_total
+  FROM average_sales_per_order
+  ORDER BY order_total DESC
+  LIMIT 5
+)
+
+-- Final Query: Get the details of the top 3 best-selling products and the orders with the highest sales
+SELECT
+  t1.product_id,
+  total_sales,
+  order_id,
+  order_total
+FROM top_3_products t1
+JOIN total_sales_per_product t2 ON t1.product_id = t2.product_id
+JOIN top_orders t3 ON t2.product_id = t3.order_id
+ORDER BY total_sales DESC, order_total DESC;
